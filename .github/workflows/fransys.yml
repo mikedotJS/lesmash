@@ -1,0 +1,23 @@
+name: Fransys CI for react on main
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  FRANSYS_REGISTRY: ${{ secrets.FRANSYS_REGISTRY_DOMAIN }}/${{ secrets.FRANSYS_REGISTRY_PROJECT }}/main
+  DOCKERFILE_PATH: /build/react/Dockerfile
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: fransys/buildpack:0.5.0
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Fransys registry
+        run: docker login -u ${{ secrets.FRANSYS_REGISTRY_MAIN_USERNAME }} -p ${{ secrets.FRANSYS_REGISTRY_MAIN_PASSWORD }} ${{ secrets.FRANSYS_REGISTRY_DOMAIN }}
+      - name: Prepare the directory
+        run: cp -r /build build
+      - name: Build the Docker image
+        run: docker buildx build --cache-from "$FRANSYS_REGISTRY:${{ github.sha }}" --cache-from "$FRANSYS_REGISTRY:${{ github.ref_name }}" -f $DOCKERFILE_PATH --tag "$FRANSYS_REGISTRY:${{ github.sha }}" --tag "$FRANSYS_REGISTRY:${{ github.ref_name }}" --progress=plain --push . 2>&1
